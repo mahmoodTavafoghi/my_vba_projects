@@ -1,0 +1,376 @@
+Dim data(5000, 2)
+Dim xy As Variant
+Dim tt As Integer
+
+Dim pxdata(5000, 2)
+Dim xxyy As Variant
+Dim ppp As Integer
+'////////////////////////////xxx function for coordinates of first pline///////////////////////////////////////////////////////////////
+Sub xxx()
+
+On Error GoTo 50
+For t = 0 To 1000 Step 2
+pxdata(ppp, 1) = xxyy(t)
+pxdata(ppp, 2) = xxyy(t + 1)
+ppp = ppp + 1
+Next
+50
+End Sub
+'////////////////////////////aa function for coordinates of first pline///////////////////////////////////////////////////////////////
+Sub aa()
+tt = 0
+On Error GoTo 55
+For t = 0 To 1000 Step 2
+data(tt, 1) = xy(t)
+data(tt, 2) = xy(t + 1)
+tt = tt + 1
+Next
+55
+End Sub
+
+'======================================================================================================
+'=================THIS PROGRAM IS WRITEN BY MAHMOOD TAVAFOGHI===============================
+'===================================draw abriz arrows=======================================================================
+'=======================================1386/2/28==========================================================================
+
+
+ Sub arrow()
+
+ '///////////////////////////////////make matrixes zero//////////////////////////////////////////////////////////////
+ For qt = 0 To 5000
+data(qt, 1) = 0
+data(qt, 2) = 0
+Next
+
+'//////////////////////READ SCALE FACTOR AND write a file for save the scale ////////////////////////////////////////////////////////////////
+ On Error GoTo 66
+       Open "c:\arrow.ar" For Input As #5
+66:
+Close #5
+        If Err <> 0 Then
+            Open "c:\arrow.ar" For Output As #6
+              Print #6, "500"
+              Close
+        End If
+         Open "c:\arrow.ar" For Input As #5
+        Dim sc As String
+       Do While Not EOF(5)
+         Input #5, sc
+        Loop
+         Close 5
+      Err.Clear
+  '///////////////////begin the program/////////////////////////////////////////////////////////////
+Set NEWlayer = ThisDrawing.Layers.Add("ARROW")
+  NEWlayer.color = 160
+
+
+
+
+ThisDrawing.SendCommand "regen "
+On Error GoTo 29
+    Dim keyWord As String
+    Dim kw As Double
+    ThisDrawing.Utility.InitializeUserInput 4, "200 2000 1000 500"
+    keyWord = ThisDrawing.Utility.GetKeyword _
+              (vbCrLf & "Enter Scale [200/2000/1000/500] " & "<" & sc & ">:")
+    If keyWord = "" Then keyWord = sc
+    sc = keyWord
+    kw = keyWord / 1000
+'================================DRAW BLOCK arrow=====================================================================
+        Dim insertionPnt1(0 To 2) As Double
+        insertionPnt1(0) = 0#: insertionPnt1(1) = 0#: insertionPnt1(2) = 0#
+        Set BLOCKOBJ = ThisDrawing.Blocks.Add(insertionPnt1, "ARROWW")
+       ' Add a pline to the block
+        ThisDrawing.ActiveLayer = NEWlayer
+        
+            Dim plineobj As AcadPolyline
+            Dim points(0 To 8) As Double
+          ' Define the 2D polyline points
+            points(0) = 0: points(1) = 0: points(2) = 0
+            points(3) = 2.25 * kw: points(4) = 0.375 * kw: points(5) = 0
+            points(6) = 2.25 * kw: points(7) = -0.375 * kw: points(8) = 0
+          ' Create a lightweight Polyline object
+           Set plineobj = BLOCKOBJ.AddPolyline(points)
+           plineobj.Closed = True
+           
+       
+           Dim outerLoop(0 To 0) As AcadEntity
+           Set outerLoop(0) = plineobj
+           
+           Dim hatchObj As AcadHatch
+           Dim patternName As String
+           Dim PatternType As Long
+           Dim bAssociativity As Boolean
+    
+          ' Define the hatch
+            patternName = "SOLID"
+            PatternType = acHatchPatternTypePreDefined
+            bAssociativity = True
+    
+    ' Create the associative Hatch object in model space
+    Set hatchObj = BLOCKOBJ.AddHatch(PatternType, patternName, bAssociativity)
+
+    hatchObj.AppendOuterLoop (outerLoop)
+'=============================draw block ARROWW1==================================================================================
+  Dim insertionPnt2(0 To 2) As Double
+        insertionPnt2(0) = 0#: insertionPnt2(1) = 0#: insertionPnt2(2) = 0#
+        Set BLOCKOBJ1 = ThisDrawing.Blocks.Add(insertionPnt2, "ARROWW1")
+       ' Add a pline to the block
+        ThisDrawing.ActiveLayer = NEWlayer
+        
+            Dim plineobj1 As AcadPolyline
+            Dim points1(0 To 8) As Double
+          ' Define the 2D polyline points
+            points1(0) = 0: points1(1) = 0: points1(2) = 0
+            points1(3) = -2.25 * kw: points1(4) = 0.375 * kw: points1(5) = 0
+            points1(6) = -2.25 * kw: points1(7) = -0.375 * kw: points1(8) = 0
+          ' Create a lightweight Polyline object
+           Set plineobj1 = BLOCKOBJ1.AddPolyline(points1)
+           plineobj1.Closed = True
+           
+       
+           Dim outerLoop1(0 To 0) As AcadEntity
+           Set outerLoop1(0) = plineobj1
+           
+           Dim hatchObj1 As AcadHatch
+           Dim patternName1 As String
+           Dim PatternType1 As Long
+           Dim bAssociativity1 As Boolean
+    
+          ' Define the hatch
+            patternName1 = "SOLID"
+            PatternType1 = acHatchPatternTypePreDefined
+            bAssociativity1 = True
+    
+    ' Create the associative Hatch object in model space
+    Set hatchObj1 = BLOCKOBJ1.AddHatch(PatternType1, patternName1, bAssociativity1)
+
+    hatchObj1.AppendOuterLoop (outerLoop1)
+      
+'//////////////////////////select points/////////////////////////////////////////////////////////
+   Dim pointsetall As AcadSelectionSet
+   Set pointsetall = ThisDrawing.SelectionSets.Add("hxdsfggggfv")
+   Dim FilterType2(0) As Integer
+   Dim FilterData2(0) As Variant
+   Dim pointobj(20000) As Object
+   Dim ptxy As Variant
+   Dim ptdata(20000, 1 To 3) As Double
+   
+   FilterType2(0) = 8
+   FilterData2(0) = "points"
+   
+   pointsetall.Clear
+   pointsetall.Select acSelectionSetAll, , , FilterType2, FilterData2
+        For Each entry2 In pointsetall
+            Set pointobj(y) = entry2
+            
+            If pointobj(y).EntityName = "AcDbBlockReference" Then
+            ptxy = pointobj(y).InsertionPoint
+            ptdata(y, 1) = ptxy(0): ptdata(y, 2) = ptxy(1): ptdata(y, 3) = ptxy(2)
+            y = y + 1
+            End If
+           
+        Next
+'////////////////////////SELECTY PLINEs///////////////////////////////////////////////////
+   Dim pssetall As AcadSelectionSet
+   Set pssetall = ThisDrawing.SelectionSets.Add("hhhhhhb")
+   Dim FilterType(1) As Integer
+   Dim FilterData(1) As Variant
+   
+   FilterType(0) = 0
+   FilterData(0) = "lwpolyline"
+   FilterType(1) = 8
+   FilterData(1) = "WATER-COURSE"
+   
+   pssetall.Clear
+   pssetall.SelectOnScreen FilterType, FilterData
+   ThisDrawing.SendCommand "draworder _p  f "
+'------------------READ COORDINATES OF ITS VERTEX---------------------------------------
+tt = 0
+k = 0
+Dim plobj(1000) As Object
+
+   Dim pzx(2) As Double
+   Dim mag As Double
+   Dim zdata1 As Double
+   Dim zdata2 As Double
+   Dim BLKNAME As String
+       
+'-------------------------------------------
+    For Each entry In pssetall
+     Set plobj(k) = entry
+     xy = plobj(k).Coordinates: aa
+'-----------check for slope--------------------------------
+     If tt = 2 Then tg = 1
+     If tt = 3 Then tg = 1
+    
+     pzx(0) = (data(1, 1) + data(2, 1)) / 2: pzx(1) = (data(1, 2) + data(2, 2)) / 2: pzx(2) = 0
+        
+        For pz = 0 To y - 1
+            If Round(data(1 - tg, 1), 3) = Round(ptdata(pz, 1), 3) And Round(data(1 - tg, 2), 3) = Round(ptdata(pz, 2), 3) Then zdata1 = ptdata(pz, 3)
+            
+            If Round(data(tt - 2 + tg, 1), 3) = Round(ptdata(pz, 1), 3) And Round(data(tt - 2 + tg, 2), 3) = Round(ptdata(pz, 2), 3) Then zdata2 = ptdata(pz, 3)
+        Next
+       
+        
+     'MsgBox zdata1
+     'MsgBox zdata2
+'///////////////////////////choose the block/////////////////////////////////////////////////////////////////////
+     If zdata1 > zdata2 Then
+        BLKNAME = "ARROWW1"
+        Else
+        BLKNAME = "ARROWW"
+     End If
+     
+'------------------------choose 2 vertex pline for divide or measure---------------------------------------------------------------------
+
+If tt = 2 Then
+    
+    If plobj(k).Length > 25 * kw Then
+        'mag = 300 * kw
+        'ZoomCenter pzx, mag
+        ZoomExtents
+        ThisDrawing.ActiveLayer = NEWlayer
+        ThisDrawing.SendCommand "measure " & (data(1, 1) + data(0, 1)) / 2 & "," & (data(1, 2) + data(0, 2)) / 2 & " " & "B" & " " & BLKNAME & vbCr & "Y" & " " & 25 * kw & " "
+        GoTo 20
+    Else
+        'mag = 300 * kw
+        'ZoomCenter pzx, mag
+        ZoomExtents
+        ThisDrawing.ActiveLayer = NEWlayer
+        ThisDrawing.SendCommand "divide " & (data(1, 1) + data(0, 1)) / 2 & "," & (data(1, 2) + data(0, 2)) / 2 & " " & "B" & " " & BLKNAME & vbCr & "Y" & " " & 2 & " "
+        GoTo 20
+    End If
+    
+End If
+      
+'----------------------------check if pline`s length is larger than 25*kw or not -----------------------------------------------------------------
+If plobj(k).Length < 25 * kw Then
+        mag = 300 * kw
+        ZoomCenter pzx, mag
+        ThisDrawing.ActiveLayer = NEWlayer
+        ThisDrawing.SendCommand "divide " & data(1, 1) & "," & data(1, 2) & " " & "B" & " " & BLKNAME & vbCr & "Y" & " " & 2 & " "
+        GoTo 20
+End If
+ 
+'////////////////////////////measure plines/////////////////////////////////////////////////////////////////
+      
+      mag = 300 * kw
+      ZoomCenter pzx, mag
+      ThisDrawing.ActiveLayer = NEWlayer
+      ThisDrawing.SendCommand "measure " & (data(1, 1) + data(2, 1)) / 2 & "," & (data(1, 2) + data(2, 2)) / 2 & " " & "B" & " " & BLKNAME & vbCr & "Y" & " " & 25 * kw & " "
+20:
+  tg = 0
+  k = k + 1
+    Next
+'///////////////////////////save sc//////////////////////////////////////////////////////////////
+ 
+31:
+Open "c:\arrow.ar" For Output As #8
+  Print #8, sc
+Close
+ 
+ pssetall.Delete
+ pointsetall.Delete
+29:
+End Sub
+''''''''''''''''''''''''''GOOD BYE''''''''''''''''''''''''''''''''''''''''''''
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dim pxdata(5000, 2)
+Dim xxyy As Variant
+Dim ppp As Integer
+'////////////////////////////xxx function for coordinates of first pline///////////////////////////////////////////////////////////////
+Sub xxx()
+
+On Error GoTo 50
+For t = 0 To 1000 Step 2
+pxdata(ppp, 1) = xxyy(t)
+pxdata(ppp, 2) = xxyy(t + 1)
+ppp = ppp + 1
+Next
+50
+End Sub
+
+
+Sub breakpline()
+'////////////////////////SELECTY PLINEs for break///////////////////////////////////////////////////
+For xcount = 1 To 2
+ For qqt = 0 To 5000
+ pxdata(qqt, 1) = 0
+ pxdata(qqt, 2) = 0
+ Next
+   
+   
+   Dim xsetall As AcadSelectionSet
+   Set xsetall = ThisDrawing.SelectionSets.Add("xcvvqwlkrgSb")
+   Dim FilterType1(1) As Integer
+   Dim FilterData1(1) As Variant
+   Dim plineobj(2000) As Object
+   
+   FilterType1(0) = 0
+   FilterData1(0) = "lwpolyline"
+   FilterType1(1) = 8
+   FilterData1(1) = "water-course"
+   
+   xsetall.Clear
+   xsetall.Select acSelectionSetAll, , , FilterType1, FilterData1
+   ThisDrawing.SendCommand "draworder _p  f "
+'------------------READ COORDINATES OF ITS VERTEX---------------------------------------
+ppp = 0
+    For Each ENTRY9 In xsetall
+     Set plineobj(I) = ENTRY9
+     xxyy = plineobj(I).Coordinates: xxx
+     I = I + 1
+    Next
+    'If tt = 0 Then GoTo 1
+  '---------------------------------break plines---------------------------------------------------
+      qq = 1
+ 
+         For q = 0 To ppp - 1
+            For qq = 0 To ppp - 1
+              
+              If q = qq Then GoTo 1
+               On Error GoTo 1
+                If pxdata(q, 1) = pxdata(qq, 1) And pxdata(q, 2) = pxdata(qq, 2) And kf = 0 Then
+                kf = 1
+                ThisDrawing.SendCommand "break " & pxdata(q, 1) & "," & pxdata(q, 2) & " " & "f " & pxdata(q, 1) & "," & pxdata(q, 2) & " " & pxdata(q, 1) & "," & pxdata(q, 2) & " "
+                GoTo 1
+                End If
+
+
+                If pxdata(q, 1) = pxdata(qq, 1) And pxdata(q, 2) = pxdata(qq, 2) Then
+                kf = 0
+                ThisDrawing.SendCommand "break " & pxdata(q - 1, 1) & "," & pxdata(q - 1, 2) & " " & "f " & pxdata(q, 1) & "," & pxdata(q, 2) & " " & pxdata(q, 1) & "," & pxdata(q, 2) & " "
+                End If
+
+1:
+             Next
+          Next
+        xsetall.Delete
+'----------------------------------------------------------------------------------------------------
+Next xcount
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+

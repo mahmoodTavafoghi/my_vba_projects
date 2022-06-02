@@ -1,0 +1,1660 @@
+'===============this program was written by Mahmood Tavafoghi 1386/04/22=================================================================================
+'===========================================================================also rewrite for 64 bit os in 1393/02/02=====================
+
+' Option Explicit
+  
+   Dim digi As Double
+   
+   Dim key As Integer
+   Dim pnt1 As Variant
+   Dim pnt2 As Variant
+   Dim pnt3 As Variant
+   Dim pnt4 As Variant
+   
+   
+'================================================================================================
+'================================================================================================
+'// Module: OpenFile
+'//
+'// This is code that uses the Windows API to invoke the Open File '// common dialog. It is used by users to choose an Excel file that '// contains organizational data.
+
+'Vba6    True    Visual Basic for Applications, version 6.0 compatible.
+'Vba6    False   not Visual Basic for Applications, version 6.0 compatible.
+'Vba7    True    Visual Basic for Applications, version 7.0 compatible.
+'Vba7    False   not Visual Basic for Applications, version 7.0 compatible.
+'Win16   False   Indicates development environment is not 16-bit compatible.
+'Win32   True    32-bit compatible.
+'Win64   True    64-bit compatible.
+
+
+
+#If Win64 Then
+Private Declare PtrSafe Function GetOpenFileName Lib "comdlg32.dll" _
+    Alias "GetOpenFileNameA" (OFN As OPENFILENAME) As Boolean
+    
+Private Declare PtrSafe Function GetVersionExA Lib "kernel32" _
+    (lpVersionInformation As OSVERSIONINFO) As Integer
+Private Type OPENFILENAME
+  lStructSize As Long
+  hwndOwner As LongPtr
+  hInstance As LongPtr
+  lpstrFilter As String
+  lpstrCustomFilter As String
+  nMaxCustFilter As Long
+  nFilterIndex As Long
+  lpstrFile As String
+  nMaxFile As Long
+  lpstrFileTitle As String
+  nMaxFileTitle As Long
+  lpstrInitialDir As String
+  lpstrTitle As String
+  flags As Long
+  nFileOffset As Integer
+  nFileExtension As Integer
+  lpstrDefExt As String
+  lCustData As Long
+  lpfnHook As LongPtr
+  lpTemplateName As String
+End Type
+
+Private Type OSVERSIONINFO
+  dwOSVersionInfoSize As Long
+  dwMajorVersion As Long
+  dwMinorVersion As Long
+  dwBuildNumber As Long
+  dwPlatformId As Long
+  szCSDVersion As String * 128
+End Type
+
+#ElseIf Win32 Then
+Private Declare Function GetOpenFileName Lib "comdlg32.dll" _
+    Alias "GetOpenFileNameA" (OFN As OPENFILENAME) As Boolean
+Private Declare Function GetVersionExA Lib "kernel32" _
+   (lpVersionInformation As OSVERSIONINFO) As Integer
+
+Private Type OPENFILENAME
+  lStructSize As Long
+  hwndOwner As Long
+  hInstance As Long
+  lpstrFilter As String
+  lpstrCustomFilter As String
+  nMaxCustFilter As Long
+  nFilterIndex As Long
+  lpstrFile As String
+  nMaxFile As Long
+  lpstrFileTitle As String
+  nMaxFileTitle As Long
+  lpstrInitialDir As String
+  lpstrTitle As String
+  flags As Long
+  nFileOffset As Integer
+  nFileExtension As Integer
+  lpstrDefExt As String
+  lCustData As Long
+  lpfnHook As Long
+  lpTemplateName As String
+End Type
+
+Private Type OSVERSIONINFO
+  dwOSVersionInfoSize As Long
+  dwMajorVersion As Long
+  dwMinorVersion As Long
+  dwBuildNumber As Long
+  dwPlatformId As Long
+  szCSDVersion As String * 128
+End Type
+
+
+
+
+
+
+
+
+
+
+
+#End If
+
+Private Sub UserForm_Activate()
+#If VBA7 Then
+
+#Else
+MsgBox "Only Autocad 2014 allowed"
+End
+#End If
+End Sub
+
+Public Function getVersion() As String
+
+  Dim osinfo As OSVERSIONINFO
+  Dim retvalue As Integer
+  Dim Wver As String
+  Dim Vname As String
+ 
+  osinfo.dwOSVersionInfoSize = 148
+  osinfo.szCSDVersion = VBA.Space$(128)
+  retvalue = GetVersionExA(osinfo)
+
+  Wver = osinfo.dwMajorVersion & "." & osinfo.dwMinorVersion
+
+Select Case Wver
+Case "6.2": Vname = "Windows 8"
+'Case "6.2": Vname = "Windows Server 2012"
+Case "6.1": Vname = "Windows 7"
+'Case "6.1": Vname = "Windows Server 2008 R2"
+Case "6.0": Vname = "Windows Server 2008"
+'Case "6.0": Vname = "Windows Vista"
+'Case "5.2": Vname = "Windows Server 2003 R2"
+'Case "5.2": Vname = "Windows Home Server"
+Case "5.2": Vname = "Windows Server 2003"
+'Case "5.2": Vname = "Windows XP Professional x64 Edition"
+Case "5.1": Vname = "Windows XP"
+Case "5.0": Vname = "Windows 2000"
+End Select
+
+'getVersion = Wver + "_" + Vname
+getVersion = Vname
+End Function
+
+
+Public Sub FindFile(ByRef Filepath As String, sFilter As String, ByRef cancelled As Boolean)
+
+    Dim OpenFile As OPENFILENAME
+    Dim lReturn As Long
+    'Dim sFilter As String
+    
+    ' On Error GoTo errTrap
+    
+    OpenFile.lStructSize = LenB(OpenFile)
+
+    '// Sample filter:
+    '// "Text Files (*.txt)" & Chr$(0) & "*.sky" & Chr$(0) & "All Files (*.*)" & Chr$(0) & "*.*"
+    'sFilter = "Excel Files (*.xl*)" & Chr(0) & "*.xl*"
+    
+    OpenFile.lpstrFilter = sFilter
+    OpenFile.nFilterIndex = 1
+    OpenFile.lpstrFile = VBA.String(257, 0)
+    OpenFile.nMaxFile = Len(OpenFile.lpstrFile) - 1
+    OpenFile.lpstrFileTitle = OpenFile.lpstrFile
+    OpenFile.nMaxFileTitle = OpenFile.nMaxFile
+    'OpenFile.lpstrInitialDir = Application.ActiveDocument.path
+    If Filepath > "" Then
+       OpenFile.lpstrInitialDir = Filepath
+    Else
+       OpenFile.lpstrInitialDir = "d:\"
+    End If
+    
+    OpenFile.lpstrTitle = "Find " + sFilter
+    OpenFile.flags = 0
+    lReturn = GetOpenFileName(OpenFile)
+    
+    If lReturn = 0 Then
+       cancelled = True
+       Filepath = vbNullString
+    Else
+      cancelled = False
+      Filepath = VBA.Trim(OpenFile.lpstrFile)
+      Filepath = Replace(Filepath, VBA.Chr(0), vbNullString)
+    End If
+
+    Exit Sub
+    
+errTrap:
+    Exit Sub
+    Resume
+
+End Sub
+
+Private Function getFiled(sPath As String, sExt As String, sDescr As String) As String
+'(getfiled "Title" "Directory Path and/or File name" "File Extension" Flag)
+
+  Dim bCancelled As Boolean
+  Dim fType As String
+ 
+  fType = sDescr + " (*." + sExt + ")" + VBA.Chr(0) + "*." + sExt
+   
+ 
+ 
+  FindFile sPath, fType, bCancelled
+  If bCancelled Then getFiled = "" Else getFiled = sPath
+'''''
+End Function
+
+'================================================================================================
+'===========================================================================================
+'=========================================================================================
+'==========================================
+  
+
+
+
+
+Public Sub CommandButton1_Click()
+
+Dim FFFFNAME As String
+FFFFNAME = UserForm2.Label3.Caption
+
+If FFFFNAME = "" Then FFFFNAME = "d:\"
+
+If OptionButton1.Value = True Then
+        digi = 5
+    Else
+        digi = 6
+ End If
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''UserForm2.height = 48.75
+'UserForm2.C.DialogTitle = "LBS"
+'UserForm2.C.ShowOpen
+'If UserForm2.C.FileName = "" Then GoTo 1
+'Open UserForm2.C.FileName For Input As #1
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+Dim FFNAME As String
+FFNAME = getFiled(FFFFNAME, "*", "LBS")
+If FFNAME = "" Then End
+
+Open FFNAME For Input As #1
+
+
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+
+Dim pointObj(1000000) As AcadPoint
+Dim location(0 To 2) As Double
+Dim textObj(10000000) As AcadText
+Dim textString As String
+Dim insertionPoint(0 To 2) As Double
+Dim heightt As Double
+Dim COUNTERMAX As Double
+
+ '''''''''''''''''''''''''''''''''''''''''''''''
+ COUNTERMAX = 0
+Open "d:\lbs.tmp" For Output As #2
+Do While Not EOF(1)
+     Dim stcheck As String
+         Input #1, stcheck
+     If Not Right(stcheck, 10) Like "*<Null>*" Then
+     Print #2, stcheck
+     End If
+      
+  Loop
+  Close
+
+
+Open "d:\lbs.tmp" For Input As #1
+
+Dim qcod As String
+  Do While Not EOF(1)
+     Input #1, re, rx, ey, wz, qcod
+     COUNTERMAX = COUNTERMAX + 1
+
+  Loop
+ Close #1
+
+
+ 
+ Dim Counter As Integer
+   Counter = 0
+   
+'  UserForm2.ProgressBar1.Max = COUNTERMAX
+'   UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+ UserForm2.Label2.Width = 0
+ ccontt = 138 / COUNTERMAX
+    
+    
+   ''''''''''''''''''''''''''''''''''''''''''Add Layer''''''''''''''''''
+  Set newlayer = ThisDrawing.Layers.Add("Pts")
+  newlayer.color = 5
+    Set newlayer = ThisDrawing.Layers.Add("Num")
+    newlayer.color = 2
+  Set newlayer = ThisDrawing.Layers.Add("Cod")
+  newlayer.color = 3
+     Set newlayer = ThisDrawing.Layers.Add("Lbs")
+newlayer.color = 4
+   Set newlayer = ThisDrawing.Layers.Add("Lbs-out")
+ newlayer.color = 1
+  '''''''''''''''''Add Style
+Set newstyle = ThisDrawing.TextStyles.Add("lbs")
+ newFontFile = "Monotxt.shx"
+    newstyle.fontFile = newFontFile
+   ' ThisDrawing.ActiveTextStyle = newstyle
+    
+  scc = TextBox1.Text
+  sc = scc / 1000
+  
+    ThisDrawing.SetVariable "PDMODE", 2
+    ThisDrawing.SetVariable "PDSIZE", sc
+    
+  Open "d:\lbs.tmp" For Input As #1
+  UserForm2.Caption = "Please Wait......"
+  UserForm2.height = 48.75
+  '''''''''''''''''''''''''''''''''''''''''''''
+  UserForm2.Label2.Visible = True
+  UserForm2.Label1.Visible = False
+  UserForm2.TextBox1.Visible = False
+  '''''''''''''''''''''''''''''''''''''''''
+  
+    
+  Dim cod As String
+  Dim locpts(0 To 2) As Double
+  
+  Dim xdataType(3) As Integer
+  
+  Dim xdata(3) As Variant
+  xdataType(0) = 1001
+  xdataType(1) = 1000
+  xdataType(2) = 1040
+  xdataType(3) = 1000
+  
+  Do While Not EOF(1)
+   Input #1, n, x, y, z, cod
+ 
+
+  
+   ii = ii + 1
+   location(0) = x
+   location(1) = y
+   location(2) = z
+   locpts(0) = x
+   locpts(1) = y
+   locpts(2) = z
+   ''''''''''''''''''''''''''ProgressBar'''''''
+   
+   start = Timer
+   Do While Timer < start + 0.004
+   DoEvents
+   Loop
+
+
+    UserForm2.Label2.Width = Counter * ccontt
+  If Counter <> 0 Then UserForm2.Label2.Caption = Int((UserForm2.Label2.Width) / 1.376) & "%"
+ '  UserForm2.Label2.Width = Counter
+   
+    Counter = Counter + 1
+   
+   ''''''''''''''''''''''''''''''''''''''''''''''''''' Pts''''''''''''''''''''''''
+   Set pointObj(ii) = ThisDrawing.ModelSpace.AddPoint(locpts)
+   pointObj(ii).Layer = "Pts"
+   
+
+
+    xdata(0) = "d"
+    xdata(1) = cod
+    xdata(2) = z
+    xdata(3) = n
+     
+    pointObj(ii).SetXData xdataType, xdata
+  
+   
+   
+   
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''lbs
+z = z
+textStringg = Format(z, "####0.00")
+
+''MSGBOX textStringg
+textString = Right(textStringg, digi)
+
+
+
+
+heightt = 1.7 * sc
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene
+If Mid(textString, i, 1) = "." Then Exit For
+cu = cu + heightt
+Next
+   
+   
+ insertionPoint(0) = x - cu: insertionPoint(1) = y: insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).Layer = "Lbs"
+textObj(ii).StyleName = "lbs"
+textObj(ii).Backward = False
+ ''''''''''''''''''''''''''''''''''''''''''''''''Cod'''''''''''''''
+ heightt = (1 * sc)
+
+textString = cod
+'-----------LE
+cu = 0
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene / 2
+cu = cu + heightt
+Next
+'-------------------
+    insertionPoint(0) = x - (cu / 7): insertionPoint(1) = y - (1.1 * sc): insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).StyleName = "standard"
+ textObj(ii).Layer = "Cod"
+ textObj(ii).Backward = False
+ If textString Like "*1-*" Or textString Like "*%*1-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*2-*" Or textString Like "*%*2-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*3-*" Or textString Like "*%*3-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*4-*" Or textString Like "*%*4-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*15-*" Or textString Like "*%*15-*" Then textObj(ii).color = 40: GoTo 2
+ If textString Like "*16-*" Or textString Like "*%*16-*" Then textObj(ii).color = 34: GoTo 2
+ If textString Like "*5-*" Or textString Like "*%*5-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*6-*" Or textString Like "*%*6-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*7-*" Or textString Like "*%*7-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*8-*" Or textString Like "*%*8-*" Then textObj(ii).color = 3: GoTo 2
+ If textString Like "*9-*" Or textString Like "*%*9-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*10-*" Or textString Like "*%*10-*" Then textObj(ii).color = 1: GoTo 2
+ If textString Like "*12-*" Or textString Like "*%*12-*" Then textObj(ii).color = 240: GoTo 2
+ If textString Like "*77-*" Or textString Like "*%*77-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*71-*" Or textString Like "*%*71-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*40-*" Or textString Like "*%*40-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*80-*" Or textString Like "*%*80-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*19-*" Or textString Like "*%*19-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*20-*" Or textString Like "*%*20-*" Then textObj(ii).color = 1: GoTo 2
+ If textString Like "*A-*" Or textString Like "*%*A-*" Then textObj(ii).color = 112: GoTo 2
+ If textString Like "*60-*" Or textString Like "*%*60-*" Then textObj(ii).color = 46: GoTo 2
+ If textString Like "*70-*" Or textString Like "*%*70-*" Then textObj(ii).color = 42: GoTo 2
+ If textString Like "*D-*" Or textString Like "*%*D-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*F-*" Or textString Like "*%*F-*" Then textObj(ii).color = 173: GoTo 2
+ If textString Like "*G-*" Or textString Like "*%*G-*" Then textObj(ii).color = 140: GoTo 2
+ If textString Like "*S*" Then textObj(ii).color = 240: GoTo 2
+ 
+ 
+2:
+ 
+ 
+'''''''''''''''''''''''''''''''''''''''''''Num
+heightt = (1.7 * sc)
+textString = n
+'-----------LE
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene / 2
+cu = cu + heightt
+Next
+'------------------------
+  insertionPoint(0) = x - cu: insertionPoint(1) = y + (2 * sc): insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).StyleName = "standard"
+textObj(ii).Layer = "Num"
+textObj(ii).Backward = False
+   
+Loop
+ ' UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+   ZoomExtents
+   Close #1
+
+ZoomExtents
+msg = "Do you want to Specify LBS-OUT?"
+response = MsgBox(msg, vbYesNo, LBS - OUT)
+      If response = vbYes Then UserForm2.CommandButton3_Click
+            
+1:
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.lbs" For Output As #5
+Print #5, TextBox1.Text, OptionButton1.Value, ",", OptionButton2.Value, ",", FFNAME
+Close 5
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+End
+
+
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Public Sub CommandButton2_Click()
+
+   UserForm2.Hide
+   pnt1 = ThisDrawing.Utility.GetPoint(, "Enter a point1: ")
+   pnt2 = ThisDrawing.Utility.GetPoint(, "Enter a point2: ")
+   pnt3 = ThisDrawing.Utility.GetPoint(, "Enter a point3: ")
+   pnt4 = ThisDrawing.Utility.GetPoint(, "Enter a point4: ")
+key = 1
+If OptionButton1.Value = True Then
+        digi = 5
+    Else
+        digi = 6
+ End If
+UserForm2.CommandButton7_Click
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+Public Sub CommandButton3_Click()
+
+UserForm2.Hide
+ Dim xy As Variant
+ Dim mode As Integer
+ Dim corner1(0 To 2) As Double
+ Dim corner2(0 To 2) As Double
+ Dim anobj(1 To 10000000) As Object
+ Dim anobjall(1 To 10000000) As Object
+ 
+ ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+ 
+ Dim qssetall As AcadSelectionSet
+   
+    Set qssetall = ThisDrawing.SelectionSets.Add("ajlzhjl")
+     Set sset = ThisDrawing.SelectionSets.Add("ajjxj")
+       qssetall.Clear
+       sset.Clear
+    
+    ZoomExtents
+    qssetall.Select acSelectionSetAll
+    
+   nn = 0
+   
+     For Each entry In qssetall
+     
+      nn = nn + 1
+      Set anobjall(nn) = entry
+        If anobjall(nn).EntityName = "AcDbText" And UCase(anobjall(nn).Layer) = "LBS" Then
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        
+          he = anobjall(nn).height
+          lene = Len(anobjall(nn).textString)
+          cu = (1.3333333 * he)
+          For ii = 2 To lene - 1
+          cu = cu + he
+          Next
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+          xy = anobjall(nn).insertionPoint
+          
+          x = xy(0)
+          y = xy(1)
+          z = xy(2)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    Dim newlay As AcadLayer
+    Set newlay = ThisDrawing.Layers.Add("LBS-OUT")
+    newlay.color = acRed
+    
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    sset.Clear
+    Dim pointsArray(0 To 11) As Double
+    mode = acSelectionSetFence
+   ' pointsArray(0) = x: pointsArray(1) = y: pointsArray(2) = z
+   ' pointsArray(3) = x + (cu): pointsArray(4) = y: pointsArray(5) = z
+   ' pointsArray(6) = x + (cu): pointsArray(7) = y + (he): pointsArray(8) = z
+   ' pointsArray(9) = x: pointsArray(10) = y + (he): pointsArray(11) = z
+    
+    pointsArray(0) = x: pointsArray(1) = y: pointsArray(2) = z
+    pointsArray(3) = x + cu + 0.3 * (cu): pointsArray(4) = y: pointsArray(5) = z
+    pointsArray(6) = x + cu + 0.3 * (cu): pointsArray(7) = y + 0.5 * (cu): pointsArray(8) = z
+    pointsArray(9) = x: pointsArray(10) = y + 0.5 * (cu): pointsArray(11) = z
+    sset.SelectByPolygon mode, pointsArray
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+          
+          i = 0
+             For Each entry1 In sset
+             i = i + 1
+              Set anobj(i) = entry1
+               If anobj(i).EntityName = "AcDbText" And UCase(anobj(i).Layer) = "LBS" And anobj(i).Handle <> anobjall(nn).Handle Then
+
+
+                    anobj(i).Layer = "lbs-out"
+
+                End If
+            Next
+
+  
+
+       End If
+
+  Next
+
+44:
+qssetall.Delete
+sset.Delete
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Public Sub CommandButton7_Click()
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'MSGBOX key
+    
+   If key <> 1 Then
+       On Error Resume Next
+       Open "d:\lbs.lbs" For Input As #5
+        If Err <> 0 Then
+            Open "d:\lbs.lbs" For Output As #6
+              Print #6, "500", "True", ",", "False", ",", "d:\"
+              Close
+        End If
+         Open "d:\lbs.lbs" For Input As #5
+        Dim txbox As Integer
+        Dim op1 As String
+         Dim op2 As String
+         Do While Not EOF(5)
+         Input #5, txbox, op1, op2, FFFGNAME
+         Loop
+        TextBox1.Text = txbox
+         OptionButton1.Value = op1
+         OptionButton2.Value = op2
+         UserForm2.Label3.Caption = FFFGNAME
+         Close 5
+     End If
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+If key = 1 Then
+100:
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  If pnt1(0) - pnt2(0) = 0 Or pnt1(1) - pnt2(1) = 0 Then
+        gxy = 0
+        GoTo 33
+  End If
+    
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+   If pnt1(1) < pnt2(1) And pnt1(1) < pnt3(1) And pnt1(1) < pnt4(1) Then
+   ymin = pnt1(1)
+   xmin = pnt1(0)
+   End If
+   
+   If pnt2(1) < pnt1(1) And pnt2(1) < pnt3(1) And pnt2(1) < pnt4(1) Then
+   ymin = pnt2(1)
+   xmin = pnt2(0)
+   End If
+   
+   If pnt3(1) < pnt2(1) And pnt3(1) < pnt1(1) And pnt3(1) < pnt4(1) Then
+   ymin = pnt3(1)
+   xmin = pnt3(0)
+   End If
+   
+   If pnt4(1) < pnt2(1) And pnt4(1) < pnt3(1) And pnt4(1) < pnt1(1) Then
+   ymin = pnt4(1)
+   xmin = pnt4(0)
+   End If
+   
+   
+     ddxx1 = Sqr((xmin - pnt1(0)) ^ 2 + (ymin - pnt1(1)) ^ 2)
+     ddxx2 = Sqr((xmin - pnt2(0)) ^ 2 + (ymin - pnt2(1)) ^ 2)
+     ddxx3 = Sqr((xmin - pnt3(0)) ^ 2 + (ymin - pnt3(1)) ^ 2)
+     ddxx4 = Sqr((xmin - pnt4(0)) ^ 2 + (ymin - pnt4(1)) ^ 2)
+
+     If ddxx1 = 0 Then
+        If ddxx4 > ddxx2 Then
+            xmax = pnt4(0)
+            ymax = pnt4(1)
+        Else
+            xmax = pnt2(0)
+            ymax = pnt2(1)
+        End If
+     End If
+     
+     
+     If ddxx2 = 0 Then
+        If ddxx3 > ddxx1 Then
+            xmax = pnt3(0)
+            ymax = pnt3(1)
+        Else
+            xmax = pnt1(0)
+            ymax = pnt1(1)
+        End If
+     End If
+     
+     
+    If ddxx3 = 0 Then
+        If ddxx4 > ddxx2 Then
+            xmax = pnt4(0)
+            ymax = pnt4(1)
+        Else
+            xmax = pnt2(0)
+            ymax = pnt2(1)
+        End If
+     End If
+     
+     
+     If ddxx4 = 0 Then
+        If ddxx3 > ddxx1 Then
+            xmax = pnt3(0)
+            ymax = pnt3(1)
+        Else
+            xmax = pnt1(0)
+            ymax = pnt1(1)
+        End If
+     End If
+     
+     
+     
+     
+   '   If ddxx1 > ddxx2 And ddxx1 > ddxx3 And ddxx1 > ddxx4 Then
+   '         xmax = pnt1(0)
+   '         ymax = pnt1(1)
+   '   End If
+   '
+      
+   '   If ddxx2 > ddxx1 And ddxx2 > ddxx3 And ddxx2 > ddxx4 Then
+   '         xmax = pnt2(0)
+   '         ymax = pnt2(1)
+   '   End If
+      
+   '
+   '   If ddxx3 > ddxx2 And ddxx3 > ddxx1 And ddxx3 > ddxx4 Then
+   '         xmax = pnt3(0)
+   '         ymax = pnt3(1)
+   '   End If
+      
+   '
+   '   If ddxx4 > ddxx2 And ddxx4 > ddxx3 And ddxx4 > ddxx1 Then
+   '         xmax = pnt4(0)
+   '         ymax = pnt4(1)
+   '   End If
+           dxm = xmax - xmin
+           dym = ymax - ymin
+           If dxm < 1 Then dxm = dxm * -1
+           If dym < 1 Then dym = dym * -1
+        '  On Error Resume Next
+          gxy = Atn(dym / dxm)
+        '   If Err <> 0 Then gxy = 0
+           If xmax < xmin Then gxy = gxy * -1
+           
+33:
+  ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  Dim wcsObj As AcadUCS
+    Dim worigin(0 To 2) As Double
+    Dim wxAxisPoint(0 To 2) As Double
+    Dim wyAxisPoint(0 To 2) As Double
+    worigin(0) = 0: worigin(1) = 0: worigin(2) = 0
+    wxAxisPoint(0) = 1: wxAxisPoint(1) = 0: wxAxisPoint(2) = 0
+    wyAxisPoint(0) = 0: wyAxisPoint(1) = 1: wyAxisPoint(2) = 0
+    Set wcsObj = ThisDrawing.UserCoordinateSystems.Add(worigin, wxAxisPoint, wyAxisPoint, "wCS1")
+   
+  '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+   Dim pnt4rotobj As AcadPoint
+Set pnt4rotobj = ThisDrawing.ModelSpace.AddPoint(pnt2)
+pnt4rotobj.Rotate pnt1, 3.14159265358979 / 2
+Dim pnt4rot As Variant
+pnt4rot = pnt4rotobj.Coordinates
+''''''''''''''''''''''''''''''''''''''''
+If pnt1(0) >= pnt4(0) And pnt1(1) >= pnt4(1) Then
+    If pnt1(0) >= pnt4rot(0) And pnt1(1) >= pnt4rot(1) Then
+    ''MSGBOX 1111
+    GoTo 666
+    End If
+End If
+
+If pnt1(0) <= pnt4(0) And pnt1(1) <= pnt4(1) Then
+    If pnt1(0) <= pnt4rot(0) And pnt1(1) <= pnt4rot(1) Then
+    ''MSGBOX 1112
+    GoTo 666
+    End If
+End If
+
+If pnt1(0) >= pnt4(0) And pnt1(1) <= pnt4(1) Then
+    If pnt1(0) >= pnt4rot(0) And pnt1(1) <= pnt4rot(1) Then
+    ''MSGBOX 1113
+    GoTo 666
+    End If
+End If
+
+If pnt1(0) <= pnt4(0) And pnt1(1) >= pnt4(1) Then
+    If pnt1(0) <= pnt4rot(0) And pnt1(1) >= pnt4rot(1) Then
+    ''MSGBOX 1114
+    GoTo 666
+    End If
+End If
+
+pnt4rotobj.Rotate pnt1, -3.14159265358979
+
+ pnt4rot(0) = 0
+ pnt4rot(1) = 0
+ pnt4rot(2) = 0
+pnt4rot = pnt4rotobj.Coordinates
+
+666:
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+   
+    Dim viewportObj As AcadViewport
+    Set viewportObj = ThisDrawing.ActiveViewport
+    Dim ucsObj As AcadUCS
+    Dim origin(0 To 2) As Double
+    Dim xAxisPoint(0 To 2) As Double
+    Dim yAxisPoint(0 To 2) As Double
+    origin(0) = pnt1(0): origin(1) = pnt1(1): origin(2) = 0
+    xAxisPoint(0) = pnt2(0): xAxisPoint(1) = pnt2(1): xAxisPoint(2) = 0
+    yAxisPoint(0) = pnt4rot(0): yAxisPoint(1) = pnt4rot(1): yAxisPoint(2) = 0
+  
+  Err.Clear
+  
+    On Error GoTo 123
+    
+    Set ucsObj = ThisDrawing.UserCoordinateSystems.Add(origin, xAxisPoint, yAxisPoint, "UCS1")
+   
+    keyerr = 1
+    ThisDrawing.ActiveUCS = ucsObj
+    pnt4rotobj.Delete
+    
+   Dim ucspnt1 As Variant
+   Dim ucspnt2 As Variant
+   Dim ucspnt3 As Variant
+   Dim ucspnt4 As Variant
+    
+   ucspnt1 = ThisDrawing.Utility.TranslateCoordinates(pnt1, acWorld, acUCS, False)
+   ucspnt2 = ThisDrawing.Utility.TranslateCoordinates(pnt2, acWorld, acUCS, False)
+   ucspnt3 = ThisDrawing.Utility.TranslateCoordinates(pnt3, acWorld, acUCS, False)
+   ucspnt4 = ThisDrawing.Utility.TranslateCoordinates(pnt4, acWorld, acUCS, False)
+  ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+ 
+
+UserForm2.height = 48.75
+'UserForm2.C.DialogTitle = "LBS"
+'UserForm2.C.ShowOpen
+'If UserForm2.C.FileName = "" Then GoTo 1
+
+
+'Open UserForm2.C.FileName For Input As #1
+''MSGBOX "MMMMMMMMMMM"
+Dim FFGGNAME As String
+FFGGNAME = UserForm2.Label3.Caption
+'MSGBOX FFGGNAME
+
+Dim FFNAME As String
+FFNAME = getFiled(FFGGNAME, "*", "LBS")
+
+
+Open FFNAME For Input As #1
+
+
+
+
+
+
+
+
+Dim pointObj(1000000) As AcadPoint
+Dim location(0 To 2) As Double
+Dim textObj(10000000) As AcadText
+Dim textString As String
+Dim insertionPoint(0 To 2) As Double
+Dim heightt As Double
+ '''''''''''''''''''''''''''''''''''''''''''''''
+ Open "d:\lbs.tmp" For Output As #2
+Do While Not EOF(1)
+     Dim stcheck As String
+         Input #1, stcheck
+     If Not Right(stcheck, 10) Like "*<Null>*" Then
+     Print #2, stcheck
+     End If
+
+  Loop
+  Close
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.tmp" For Input As #1
+  
+  ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  'COUNTERMAX = 0
+  Dim locctest As Variant
+  Dim locc(0 To 2) As Double
+'  'MSGBOX "FFFFFFFFFFFF"
+  Do While Not EOF(1)
+     Input #1, re, rx, ey, wz, qcod
+
+   locc(0) = rx
+   locc(1) = ey
+   locc(2) = wz
+     locctest = ThisDrawing.Utility.TranslateCoordinates(locc, acWorld, acUCS, False)
+       If locctest(0) > 0 And locctest(0) < ucspnt2(0) Then
+            If locctest(1) > 0 And locctest(1) < ucspnt4(1) Then
+                  COUNTERMAX = COUNTERMAX + 1
+            End If
+       End If
+  Loop
+  Close #1
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+ Dim Counter As Integer
+ 
+  Counter = 0
+   UserForm2.Label2.Width = 0
+   ccontt = 138 / COUNTERMAX
+'If COUNTERMAX = 0 Then GoTo 1
+  ' Counter = 0
+ '   UserForm2.ProgressBar1.Min = Counter
+ '   UserForm2.ProgressBar1.Max = COUNTERMAX
+ '   UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+
+    
+   ''''''''''''''''''''''''''''''''''''''''''Add Layer''''''''''''''''''
+  Set newlayer = ThisDrawing.Layers.Add("Pts")
+  newlayer.color = 5
+    Set newlayer = ThisDrawing.Layers.Add("Num")
+    newlayer.color = 2
+  Set newlayer = ThisDrawing.Layers.Add("Cod")
+  newlayer.color = 3
+     Set newlayer = ThisDrawing.Layers.Add("Lbs")
+newlayer.color = 4
+   Set newlayer = ThisDrawing.Layers.Add("Lbs-out")
+ newlayer.color = 1
+  '''''''''''''''''Add Style
+Set newstyle = ThisDrawing.TextStyles.Add("lbs")
+ newFontFile = "Monotxt.shx"
+    newstyle.fontFile = newFontFile
+  '  ThisDrawing.ActiveTextStyle = newstyle
+ ThisDrawing.SetVariable "PDMODE", 2
+    ThisDrawing.SetVariable "PDSIZE", 0.5
+  scc = TextBox1.Text
+  sc = scc / 1000
+  
+  Open "d:\lbs.tmp" For Input As #1
+ 
+  UserForm2.Caption = "Please Wait......"
+  UserForm2.height = 48.75
+  
+   '''''''''''''''''''''''''''''''''''''''''''''
+   
+   
+   
+   
+   
+  UserForm2.Label2.Visible = True
+  UserForm2.Label1.Visible = False
+  UserForm2.TextBox1.Visible = False
+  '''''''''''''''''''''''''''''''''''''''''
+'  UserForm2.ProgressBar1.Visible = True
+  
+Dim locpts(0 To 2) As Double
+Dim cod As String
+
+Dim xdataType(2) As Integer
+  
+  Dim xdata(2) As Variant
+  xdataType(0) = 1001
+  xdataType(1) = 1000
+  xdataType(2) = 1040
+  
+  
+  Do While Not EOF(1)
+
+   Input #1, n, x, y, z, cod
+   ii = ii + 1
+   location(0) = x
+   location(1) = y
+   location(2) = z
+    locpts(0) = x
+   locpts(1) = y
+   locpts(2) = 0
+   
+
+   '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ThisDrawing.ActiveUCS = ucsObj
+   testloc = ThisDrawing.Utility.TranslateCoordinates(location, acWorld, acUCS, False)
+       If testloc(0) > 0 And testloc(0) < ucspnt2(0) Then
+            If testloc(1) > 0 And testloc(1) < ucspnt4(1) Then
+            ThisDrawing.ActiveUCS = wcsObj
+            ''''''''''''''''''''''''''ProgressBar'''''''
+            
+            
+   start = Timer
+   Do While Timer < start + 0.003
+   DoEvents
+   Loop
+
+
+    UserForm2.Label2.Width = Counter * ccontt
+  If Counter <> 0 Then UserForm2.Label2.Caption = Int((UserForm2.Label2.Width) / 1.376) & "%"
+  '  UserForm2.ProgressBar1.Value = Counter
+    Counter = Counter + 1
+   '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''pts'''''''''''''''''''''''''
+  Set pointObj(ii) = ThisDrawing.ModelSpace.AddPoint(locpts)
+   pointObj(ii).Layer = "Pts"
+   
+   
+   xdata(0) = "d"
+    xdata(1) = cod
+    xdata(2) = z
+   
+     
+    pointObj(ii).SetXData xdataType, xdata
+    
+ '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''lbs'''''''''''''''
+  z = z
+textStringg = Format(z, "##,##0.00")
+textString = Right(textStringg, digi)
+
+heightt = 1.7 * sc
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene
+If Mid(textString, i, 1) = "." Then Exit For
+cu = cu + heightt
+Next
+   
+ insertionPoint(0) = x - cu: insertionPoint(1) = y: insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).Layer = "Lbs"
+textObj(ii).StyleName = "lbs"
+textObj(ii).Rotate location, gxy
+textObj(ii).Backward = False
+
+ ''''''''''''''''''''''''''''''''''''''''''''''''Cod'''''''''''''''
+ heightt = (1 * sc)
+textString = cod
+'-----------LE
+cu = 0
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene / 2
+cu = cu + heightt
+Next
+'-------------------
+    insertionPoint(0) = x - (cu / 7): insertionPoint(1) = y - (1.1 * sc): insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).StyleName = "standard"
+textObj(ii).Layer = "Cod"
+textObj(ii).Rotate location, gxy
+textObj(ii).Backward = False
+ If textString Like "*1-*" Or textString Like "*%*1-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*2-*" Or textString Like "*%*2-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*3-*" Or textString Like "*%*3-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*4-*" Or textString Like "*%*4-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*15-*" Or textString Like "*%*15-*" Then textObj(ii).color = 40: GoTo 2
+ If textString Like "*16-*" Or textString Like "*%*16-*" Then textObj(ii).color = 34: GoTo 2
+ If textString Like "*5-*" Or textString Like "*%*5-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*6-*" Or textString Like "*%*6-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*7-*" Or textString Like "*%*7-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*8-*" Or textString Like "*%*8-*" Then textObj(ii).color = 3: GoTo 2
+ If textString Like "*9-*" Or textString Like "*%*9-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*10-*" Or textString Like "*%*10-*" Then textObj(ii).color = 1: GoTo 2
+ If textString Like "*12-*" Or textString Like "*%*12-*" Then textObj(ii).color = 240: GoTo 2
+ If textString Like "*77-*" Or textString Like "*%*77-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*71-*" Or textString Like "*%*71-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*40-*" Or textString Like "*%*40-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*80-*" Or textString Like "*%*80-*" Then textObj(ii).color = 134: GoTo 2
+ If textString Like "*19-*" Or textString Like "*%*19-*" Then textObj(ii).color = 160: GoTo 2
+ If textString Like "*20-*" Or textString Like "*%*20-*" Then textObj(ii).color = 1: GoTo 2
+ If textString Like "*A-*" Or textString Like "*%*A-*" Then textObj(ii).color = 112: GoTo 2
+ If textString Like "*60-*" Or textString Like "*%*60-*" Then textObj(ii).color = 46: GoTo 2
+ If textString Like "*70-*" Or textString Like "*%*70-*" Then textObj(ii).color = 42: GoTo 2
+ If textString Like "*D-*" Or textString Like "*%*D-*" Then textObj(ii).color = 7: GoTo 2
+ If textString Like "*F-*" Or textString Like "*%*F-*" Then textObj(ii).color = 173: GoTo 2
+ If textString Like "*G-*" Or textString Like "*%*G-*" Then textObj(ii).color = 140: GoTo 2
+ If textString Like "*S*" Then textObj(ii).color = 240: GoTo 2
+ 
+ 
+2:
+ 
+ 
+'''''''''''''''''''''''''''''''''''''''''''Num
+heightt = (1.7 * sc)
+textString = n
+'-----------LE
+lene = Len(textString)
+cu = (1.3333333 * heightt)
+For i = 2 To lene / 2
+cu = cu + heightt
+Next
+'------------------------
+  insertionPoint(0) = x - cu: insertionPoint(1) = y + (2 * sc): insertionPoint(2) = 0
+Set textObj(ii) = ThisDrawing.ModelSpace.AddText(textString, insertionPoint, heightt)
+textObj(ii).Layer = "Num"
+textObj(ii).StyleName = "standard"
+  textObj(ii).Rotate location, gxy
+  textObj(ii).Backward = False
+ 
+End If
+End If
+Loop
+'UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+
+   Close #1
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Dim wUCS As AcadUCS
+    Dim xorigin(0 To 2) As Double
+    Dim xxAxis(0 To 2) As Double
+    Dim yyAxis(0 To 2) As Double
+
+    xorigin(0) = 0: xorigin(1) = 0: xorigin(2) = 0
+    xxAxis(0) = 1: xxAxis(1) = 0: xxAxis(2) = 0
+    yyAxis(0) = 0: yyAxis(1) = 1: yyAxis(2) = 0
+
+Set wUCS = ThisDrawing.UserCoordinateSystems.Add(xorigin, xxAxis, yyAxis, "TestUCS")
+ThisDrawing.ActiveUCS = wUCS
+
+''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+ZoomExtents
+
+
+msg = "Do you want to Specify LBS-OUT?"
+response = MsgBox(msg, vbYesNo, LBS - OUT)
+      If response = vbYes Then
+        Dim msetall As AcadSelectionSet
+        Set msetall = ThisDrawing.SelectionSets.Add("azzxzaalfll")
+        msetall.Clear
+        msetall.Select acSelectionSetAll
+        mnn = 0
+        Dim manobj(0 To 900000) As Object
+        Dim basep(0 To 2) As Double
+        basep(0) = 0
+        basep(1) = 0
+        basep(2) = 0
+        
+         
+         For Each entry In msetall
+           
+           mnn = nn + 1
+           Set manobj(mnn) = entry
+           manobj(mnn).Rotate basep, -gxy
+        Next
+          ZoomExtents
+        
+   UserForm2.CommandButton3_Click
+        For Each entry In msetall
+     
+           mnn = nn + 1
+           Set manobj(mnn) = entry
+           manobj(mnn).Rotate basep, gxy
+        Next
+   
+        msetall.Delete
+        ZoomExtents
+        End If
+
+
+1:
+ThisDrawing.SendCommand "ucs _w "
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.lbs" For Output As #5
+Print #5, TextBox1.Text, OptionButton1.Value, ",", OptionButton2.Value, ",", UserForm2.Label3.Caption
+Close 5
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+End
+
+123:
+
+If keyerr = 0 Then
+''MSGBOX "end"
+pnt4rotobj.Delete
+Dim pntkomaki As Variant
+pntkomaki = pnt1
+pnt1 = pnt2
+pnt2 = pnt3
+pnt3 = pnt4
+pnt4 = pntkomaki
+GoTo 100
+End If
+
+End If
+End Sub
+
+
+
+
+
+
+'==========================================================================================
+'=========================================================POWER==================================
+
+Private Sub CommandButton4_Click()
+kt = 0
+99:
+
+UserForm2.height = 48.75
+
+'UserForm2.C.DialogTitle = "POWER"'
+'UserForm2.C.ShowOpen
+'If UserForm2.C.FileName = "" Then GoTo 1
+'Open UserForm2.C.FileName For Input As #1
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+Dim FFNAME As String
+FFNAME = getFiled(UserForm2.Label3.Caption, "*", "POWER")
+Open FFNAME For Input As #1
+UserForm2.Label3.Caption = FFNAME
+
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+
+
+
+
+
+
+
+Dim location(0 To 2) As Double
+
+Dim insertionPnt(0 To 2) As Double
+
+
+'==================================================================================================
+
+ COUNTERMAX = 0
+ 
+  Dim qcod As String
+  Do While Not EOF(1)
+     Input #1, re, rx, ey, wz, qcod
+           If Left(qcod, 1) = "h" Or Left(qcod, 1) = "H" Then
+                   COUNTERMAX = COUNTERMAX + 1
+           End If
+  Loop
+  Close #1
+
+ If COUNTERMAX = 0 Then GoTo 1
+ 
+ Dim Counter As Integer
+   Counter = 0
+ '   UserForm2.ProgressBar1.Min = Counter
+ '   UserForm2.ProgressBar1.Max = COUNTERMAX
+ '   UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+    
+    
+   ''''''''''''''''''''''''''''''''''''''''''Add Layer''''''''''''''''''
+   Dim newlayer As AcadLayer
+   
+  Set newlayer = ThisDrawing.Layers.Add("power")
+  newlayer.color = 7
+  
+ThisDrawing.ActiveLayer = newlayer
+'=========================================================================================================
+  scc = TextBox1.Text
+  sc = scc / 500
+'===============================================================================================================
+  Open FFNAME For Input As #1
+  UserForm2.Caption = "Pars Keyhan Peymayesh"
+  UserForm2.Width = 140
+  UserForm2.height = 48.75
+  UserForm2.Label1.Visible = False
+  UserForm2.TextBox1.Visible = False
+  
+  
+'========================================================================================
+  
+   ' 'MSGBOX Counter
+  Dim cod As String
+  
+  Do While Not EOF(1)
+   Input #1, n, x, y, z, cod
+ 
+
+  
+   ii = ii + 1
+   location(0) = x
+   location(1) = y
+   location(2) = 0
+   
+  
+ ''''''''''''''''''''''''''''''''''''''''''''''''ISERT OBJECT'''''''''''''
+
+    If Left(cod, 1) = "h" Or Left(cod, 1) = "H" Then
+    Dim blockRefObj As AcadBlockReference
+    insertionPnt(0) = x: insertionPnt(1) = y: insertionPnt(2) = 0
+    Set blockRefObj = ThisDrawing.ModelSpace.InsertBlock(insertionPnt, "power.DWG", sc, sc, 1#, 0)
+   '----------------------------------------------------------
+   ''''''''''''''''''''''''''ProgressBar'''''''
+             
+  
+    'UserForm2.ProgressBar1.Value = Counter
+    Counter = Counter + 1
+    
+    '----------------------------------------------------------
+    
+    End If
+    
+ 
+Loop
+ ' UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+   ZoomExtents
+   Close #1
+
+ZoomExtents
+'========================================================================================
+'========================================================================================
+1:
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.lbs" For Output As #5
+Print #5, TextBox1.Text, OptionButton1.Value, ",", OptionButton2.Value, ",", UserForm2.Label3.Caption
+Close 5
+'----------------------------------------------------------
+
+End
+
+
+'------------------------------------------------------------
+
+End Sub
+
+
+
+
+
+'================================================treee====================================
+'==========================================================================================
+Private Sub CommandButton5_Click()
+
+
+kt = 0
+99:
+
+UserForm2.height = 48.75
+''UserForm2.C.DialogTitle = "TREE"
+'UserForm2.C.ShowOpen
+'If UserForm2.C.FileName = "" Then GoTo 1
+'Open UserForm2.C.FileName For Input As #1
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+Dim FFNAME As String
+FFNAME = getFiled(UserForm2.Label3.Caption, "*", "TREE")
+Open FFNAME For Input As #1
+UserForm2.Label3.Caption = FFNAME
+
+
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+
+
+
+Dim location(0 To 2) As Double
+
+Dim insertionPnt(0 To 2) As Double
+
+
+'==================================================================================================
+
+ COUNTERMAX = 0
+ 
+  Dim qcod As String
+  Do While Not EOF(1)
+     Input #1, re, rx, ey, wz, qcod
+           If Left(qcod, 1) = "d" Or Left(qcod, 1) = "D" Then
+                   COUNTERMAX = COUNTERMAX + 1
+           End If
+  Loop
+  Close #1
+
+  If COUNTERMAX = 0 Then GoTo 1
+ Dim Counter As Integer
+   Counter = 0
+ '   UserForm2.ProgressBar1.Min = Counter
+ '   UserForm2.ProgressBar1.Max = COUNTERMAX
+ '   UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+    
+    
+   ''''''''''''''''''''''''''''''''''''''''''Add Layer''''''''''''''''''
+   Dim newlayer As AcadLayer
+   
+  Set newlayer = ThisDrawing.Layers.Add("TREE")
+  newlayer.color = 3
+  
+ThisDrawing.ActiveLayer = newlayer
+'=========================================================================================================
+  scc = TextBox1.Text
+  sc = scc / 500
+'===============================================================================================================
+  Open FFNAME For Input As #1
+  UserForm2.Caption = "Pars Keyhan Peymayesh"
+  UserForm2.Width = 140
+  UserForm2.height = 48.75
+ ' UserForm2.ProgressBar1.Visible = True
+  
+'========================================================================================
+  
+   ' 'MSGBOX Counter
+  Dim cod As String
+  
+  Do While Not EOF(1)
+   Input #1, n, x, y, z, cod
+ 
+
+  
+   ii = ii + 1
+   location(0) = x
+   location(1) = y
+   location(2) = 0
+   
+  
+ ''''''''''''''''''''''''''''''''''''''''''''''''ISERT OBJECT'''''''''''''
+
+    If Left(cod, 1) = "d" Or Left(cod, 1) = "D" Then
+    Dim blockRefObj As AcadBlockReference
+    insertionPnt(0) = x: insertionPnt(1) = y: insertionPnt(2) = 0
+    Set blockRefObj = ThisDrawing.ModelSpace.InsertBlock(insertionPnt, "TREE.DWG", sc, sc, 1#, 0)
+   '----------------------------------------------------------
+   ''''''''''''''''''''''''''ProgressBar'''''''
+  '  UserForm2.ProgressBar1.Value = Counter
+    Counter = Counter + 1
+    
+    '----------------------------------------------------------
+    
+    End If
+    
+ 
+Loop
+ ' UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+   ZoomExtents
+   Close #1
+
+ZoomExtents
+'========================================================================================
+'========================================================================================
+1:
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.lbs" For Output As #5
+Print #5, TextBox1.Text, OptionButton1.Value, ",", OptionButton2.Value, ",", UserForm2.Label3.Caption
+Close 5
+'----------------------------------------------------------
+
+End
+
+End Sub
+'====================================================SPECIAL BLOCK============================================
+
+Private Sub CommandButton6_Click()
+
+'=========================================================================================================
+  scc = TextBox1.Text
+  sc = scc / 500
+
+''''''''''''''''''''''''''''''''''''''''''Add Layer''''''''''''''''''
+
+   Dim newlayer1B  As AcadLayer
+   
+  Set newlayer1B = ThisDrawing.Layers.Add(TextBox3.Text)
+  newlayer1B.color = UCase(Asc(TextBox3.Text))
+  
+  ThisDrawing.ActiveLayer = newlayer1B
+'++++++++++++++++++++++++++++++++++++DRAW BLOCK++++++++++++++++++++++++++++++++++++++++++++++++++
+Dim insertionPntB(0 To 2) As Double
+        insertionPntB(0) = 0#: insertionPntB(1) = 0#: insertionPntB(2) = 0#
+        Set blockObjb = ThisDrawing.Blocks.Add(insertionPntB, "SPBLK")
+       ' Add a circle to the block
+        ThisDrawing.ActiveLayer = newlayer1B
+        Dim circleObj As AcadCircle
+        Dim center(0 To 2) As Double
+        Dim radius As Double
+        center(0) = 0: center(1) = 0: center(2) = 0
+        radius = 1.2 * sc
+        Set circleObj = blockObjb.AddCircle(center, radius)
+
+        Set pointObjB = blockObjb.AddPoint(center)
+        blocknameb = "SPBLK"
+'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+kt = 0
+99:
+
+UserForm2.height = 48.75
+'UserForm2.C.DialogTitle = "SPECIAL BLOCK"
+'UserForm2.C.ShowOpen
+'If UserForm2.C.FileName = "" Then GoTo 1
+'Open UserForm2.C.FileName For Input As #1
+
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+Dim FFNAME As String
+FFNAME = getFiled(UserForm2.Label3.Caption, "*", "SPECIAL BLOCK")
+Open FFNAME For Input As #1
+UserForm2.Label3.Caption = FFNAME
+
+
+']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+
+Dim location(0 To 2) As Double
+
+Dim insertionPnt(0 To 2) As Double
+
+
+'==================================================================================================
+
+ COUNTERMAX = 0
+ 
+  Dim qcod As String
+  Do While Not EOF(1)
+     Input #1, re, rx, ey, wz, qcod
+           If Left(qcod, TextBox3.TextLength) = LCase(TextBox3.Text) Or Left(qcod, TextBox3.TextLength) = UCase(TextBox3.Text) Then
+                   COUNTERMAX = COUNTERMAX + 1
+           End If
+  Loop
+  Close #1
+ If COUNTERMAX = 0 Then GoTo 1
+ 
+ Dim Counter As Integer
+   Counter = 0
+ '   UserForm2.ProgressBar1.Min = Counter
+ '   UserForm2.ProgressBar1.Max = COUNTERMAX
+ '   UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+    
+    
+   
+
+'===============================================================================================================
+  Open FFNAME For Input As #1
+  UserForm2.Caption = "Pars Keyhan Peymayesh"
+  UserForm2.Width = 140
+  UserForm2.height = 48.75
+ ' UserForm2.ProgressBar1.Visible = True
+  
+'========================================================================================
+  
+   ' 'MSGBOX Counter
+  Dim cod As String
+  
+  Do While Not EOF(1)
+  
+  
+   Input #1, n, x, y, z, cod
+ 
+
+  
+   ii = ii + 1
+   location(0) = x
+   location(1) = y
+   location(2) = 0
+   
+  
+ ''''''''''''''''''''''''''''''''''''''''''''''''ISERT OBJECT'''''''''''''
+
+    If LCase(Left(cod, TextBox3.TextLength)) = LCase(TextBox3.Text) Or UCase(Left(cod, TextBox3.TextLength)) = UCase(TextBox3.Text) Then
+
+        If IsNumeric(Mid(cod, (TextBox3.TextLength + 1), 1)) = True Then
+        
+             Dim blockRefObj As AcadBlockReference
+             insertionPnt(0) = x: insertionPnt(1) = y: insertionPnt(2) = 0
+             Set blockRefObj = ThisDrawing.ModelSpace.InsertBlock(insertionPnt, blocknameb, 1, 1, 1#, 0)
+   '----------------------------------------------------------
+   ''''''''''''''''''''''''''ProgressBar'''''''
+            ' UserForm2.ProgressBar1.Value = Counter
+             Counter = Counter + 1
+    '----------------------------------------------------------
+        End If
+        
+    End If
+    
+ 
+Loop
+ ' UserForm2.ProgressBar1.Value = UserForm2.ProgressBar1.Min
+   ZoomExtents
+   Close #1
+
+ZoomExtents
+'+++++++++++++++++++++++++++++++++++++++++++
+
+ThisDrawing.SendCommand "_-rename" & vbCr & "b" & vbCr & blocknameb & vbCr & TextBox3.Text & vbCr
+
+
+'+++++++++++++++++++++++++++++++++++++++++++
+
+'========================================================================================
+'========================================================================================
+1:
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Open "d:\lbs.lbs" For Output As #5
+Print #5, TextBox1.Text, OptionButton1.Value, ",", OptionButton2.Value, ",", UserForm2.Label3.Caption
+Close 5
+'----------------------------------------------------------
+
+End
+
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
